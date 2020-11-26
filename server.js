@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql');
+const cors = require('cors');
 
 const app = express();
 const port = 7000;
@@ -13,6 +14,7 @@ const db = mysql.createConnection({
   database: database_name
 });
 
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -42,18 +44,18 @@ app.post('/login', function(req, res) {
 
         if (result.length !== 0) {
           if (passLogin === result[0].password) {
-            res.send({ results: result, status: "User and password match." });
+            res.send({ results: result, status: "Success", message: 'Login Success' });
           } else {
-            res.send({ results: [], status: "User and password not match." });
+            res.send({ results: [], status: "Failure", message: 'Login Failure' });
           }
         } else {
-          res.send({ results: [], status: "User and password not match." });
+          res.send({ results: [], status: "Failure", message: 'Login Failure' });
         }
 
       }
     });
   } else {
-    res.send({ status: "Wrong parameters." });
+    res.send({ status: "Failure", message: 'Wrong parameters' });
   }
 
 });
@@ -70,8 +72,9 @@ app.get('/data-barang', function(req, res) {
 
 // handle post data-barang
 app.post('/data-barang', function(req, res) {
+  const id_barang = req.body.idBarang;
   const nama_barang = req.body.namaBarang;
-  const sql = `INSERT INTO data_barang (nama_barang) VALUES ('${nama_barang}')`;
+  const sql = `INSERT INTO data_barang (id, nama_barang) VALUES ('${id_barang}', '${nama_barang}')`;
 
   db.query(sql, function(error, rows, fields) {
     if (error) throw error;
@@ -79,15 +82,15 @@ app.post('/data-barang', function(req, res) {
   });
 });
 
-// handle put data-barang
-app.put('/data-barang', function(req, res) {
-  const nama_barang_old = req.body.namaBarangOld;
-  const nama_barang_new = req.body.namaBarangNew;
-  const sql = `UPDATE data_barang SET nama_barang = '${nama_barang_new}' WHERE nama_barang = '${nama_barang_old}'`;
+// handle delete data-barang
+app.delete('/data-barang', function(req, res) {
+  const id_barang = req.body.idBarang;
+  const nama_barang = req.body.namaBarang;
+  const sql = `DELETE FROM data_barang WHERE id = '${id_barang}'`;
 
   db.query(sql, function(error, rows, fields) {
     if (error) throw error;
-    res.send(`Success update in data_barang: from ${nama_barang_old} into ${nama_barang_new}`);
+    res.send(`Success delete from data_barang: ${nama_barang}`);
   });
 });
 
@@ -104,11 +107,22 @@ app.get('/data-supplier', function(req, res) {
 // handle post data-supplier
 app.post('/data-supplier', function(req, res) {
   const nama_supplier = req.body.namaSupplier;
-  const sql = `INSERT INTO data_supplier (nama_supplier) VALUES ('${nama_supplier}')`;
+  const id_barang = req.body.idBarang;
+  const sql = `INSERT INTO data_supplier (nama_supplier, id_barang) VALUES ('${nama_supplier}', '${id_barang}')`;
 
   db.query(sql, function(error, rows, fields) {
     if (error) throw error;
     res.send(`Success add into data_supplier: ${nama_supplier}`);
+  });
+});
+
+// handle get join-data
+app.get('/join-data', function(req, res) {
+  const sql = 'SELECT data_barang.nama_barang AS barang, data_supplier.nama_supplier AS supplier FROM data_barang JOIN data_supplier ON data_barang.id = data_supplier.id_barang';
+
+  db.query(sql, function(error, rows, fields) {
+    if (error) throw error;
+    res.send({ results: rows });
   });
 });
 
